@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JapanSpeak - Survival Quest</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&family=Noto+Sans+JP:wght@400;900&display=swap');
+
+        :root {
+            --primary: #FF385C;
+            --secondary: #222222;
+            --accent: #FFD700;
+            --bg-light: #F7F7F7;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--secondary);
+            touch-action: manipulation;
+        }
+
+        .streak-fire {
+            animation: flame 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes flame {
+            from { filter: drop-shadow(0 0 2px #ff4500); transform: scale(1); }
+            to { filter: drop-shadow(0 0 10px #ff8c00); transform: scale(1.1); }
+        }
+
+        .situation-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .situation-card:active {
+            transform: scale(0.96);
+        }
+
+        .locked {
+            filter: grayscale(1);
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.4s ease;
+        }
+
+        /* Glassmorphism elements */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Status Bar -->
+    <div class="px-6 pt-6 pb-2 flex justify-between items-center bg-white">
+        <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-xl streak-fire">🔥</div>
+            <div>
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Streak</p>
+                <p id="streak-count" class="text-lg font-black leading-tight">1 DAY</p>
+            </div>
+        </div>
+        <div class="text-right">
+            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Points</p>
+            <p id="score-val" class="text-lg font-black text-red-500 leading-tight">0000</p>
+        </div>
+    </div>
+
+    <!-- Header / Branding -->
+    <header class="bg-white px-6 pb-4 shadow-sm">
+        <h1 class="text-2xl font-black italic tracking-tighter">JAPAN<span class="text-red-500">SPEAK</span></h1>
+        <p class="text-sm text-gray-500">Survival Trip: Day 1 of 7</p>
+    </header>
+
+    <!-- Main Viewport -->
+    <main id="game-container" class="flex-grow p-6 overflow-y-auto pb-32">
+        <!-- Content injected here -->
+    </main>
+
+    <!-- Traveler Filter Modal (Floating Button) -->
+    <button onclick="toggleFilters()" class="fixed bottom-24 right-6 w-14 h-14 bg-black text-white rounded-full shadow-2xl flex items-center justify-center z-50 hover:scale-110 transition-transform">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+    </button>
+
+    <!-- Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 h-20 glass-nav px-8 flex justify-between items-center z-40">
+        <button onclick="renderSituations()" class="flex flex-col items-center gap-1 text-red-500">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3L4 9v12h5v-7h6v7h5V9l-8-6z"/></svg>
+            <span class="text-[10px] font-bold">HOME</span>
+        </button>
+        <button onclick="renderChallenges()" class="flex flex-col items-center gap-1 text-gray-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="text-[10px] font-bold">QUESTS</span>
+        </button>
+        <button onclick="renderDictionary()" class="flex flex-col items-center gap-1 text-gray-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            <span class="text-[10px] font-bold">ESSENTIALS</span>
+        </button>
+    </nav>
+
+    <script>
+        const SITUATIONS = [
+            { id: 'polite', name: 'Politeness Master', icon: '🙏', color: 'bg-emerald-500', words: 7 },
+            { id: 'transport', name: 'Train Station', icon: '🚄', color: 'bg-blue-500', words: 8 },
+            { id: 'food', name: 'Restaurant', icon: '🍜', color: 'bg-orange-500', words: 9 },
+            { id: 'hotel', name: 'Hotel & Needs', icon: '🏨', color: 'bg-indigo-500', words: 5 },
+            { id: 'shopping', name: 'Shopping', icon: '🛍️', color: 'bg-pink-500', words: 4 },
+            { id: 'emergency', name: 'Emergency', icon: '🚨', color: 'bg-red-600', words: 4 }
+        ];
+
+        const WORD_DATA = {
+            polite: [
+                { en: "Hello / Good day", jp: "こんにちは", romaji: "Konnichiwa", audio: "Hello" },
+                { en: "Thank you (Polite)", jp: "ありがとうございます", romaji: "Arigatou gozaimasu", audio: "Thank you" },
+                { en: "Excuse me / Sorry", jp: "すみません", romaji: "Sumimasen", audio: "Excuse me" },
+                { en: "Please", jp: "お願いします", romaji: "Onegai shimasu", audio: "Please" },
+                { en: "Yes", jp: "はい", romaji: "Hai", audio: "Yes" },
+                { en: "I don't understand", jp: "わかりません", romaji: "Wakarimasen", audio: "I don't understand" },
+                { en: "Do you speak English?", jp: "英語を話せますか？", romaji: "Eigo o hanasemasu ka?", audio: "English?" }
+            ],
+            transport: [
+                { en: "Where is the station?", jp: "駅はどこですか？", romaji: "Eki wa doko desu ka?", audio: "Where is station" },
+                { en: "Ticket", jp: "切符", romaji: "Kippu", audio: "Ticket" },
+                { en: "Entrance", jp: "入口", romaji: "Iriguchi", audio: "Entrance" },
+                { en: "Exit", jp: "出口", romaji: "Deguchi", audio: "Exit" },
+                { en: "Left", jp: "左", romaji: "Hidari", audio: "Left" },
+                { en: "Right", jp: "右", romaji: "Migi", audio: "Right" },
+                { en: "Straight", jp: "まっすぐ", romaji: "Massugu", audio: "Straight" },
+                { en: "Taxi", jp: "タクシー", romaji: "Takushī", audio: "Taxi" }
+            ],
+            food: [
+                { en: "Check, please", jp: "お会計お願いします", romaji: "Okaikei onegai shimasu", audio: "Check please" },
+                { en: "Water", jp: "水", romaji: "Mizu", audio: "Water" },
+                { en: "Delicious", jp: "おいしい", romaji: "Oishii", audio: "Delicious" },
+                { en: "Menu", jp: "メニュー", romaji: "Menyū", audio: "Menu" },
+                { en: "Before eating", jp: "いただきます", romaji: "Itadakimasu", audio: "Itadakimasu" },
+                { en: "After eating", jp: "ごちそうさまでした", romaji: "Gochisousama deshita", audio: "Gochisousama" },
+                { en: "No meat", jp: "肉なし", romaji: "Niku nashi", audio: "No meat", filter: "veg" },
+                { en: "No pork", jp: "豚肉なし", romaji: "Butaniku nashi", audio: "No pork", filter: "pork" },
+                { en: "Reservation", jp: "予約", romaji: "Yoyaku", audio: "Reservation" }
+            ],
+            emergency: [
+                { en: "Help!", jp: "助けて！", romaji: "Tasukete!", audio: "Help" },
+                { en: "Police", jp: "警察", romaji: "Keisatsu", audio: "Police" },
+                { en: "Hospital", jp: "病院", romaji: "Byouin", audio: "Hospital" },
+                { en: "I'm sick", jp: "気分が悪い", romaji: "Kibun ga warui", audio: "I am sick" }
+            ]
+        };
+
+        let state = {
+            score: 0,
+            streak: 1,
+            unlocked: ['polite', 'transport', 'food'],
+            currentFilter: 'all',
+            learnedCount: 0
+        };
+
+        const SVGS = {
+            speaker: `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>`,
+            check: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>`
+        };
+
+        function speak(text) {
+            const ut = new SpeechSynthesisUtterance(text);
+            ut.lang = 'ja-JP';
+            ut.rate = 0.85;
+            window.speechSynthesis.speak(ut);
+        }
+
+        function renderSituations() {
+            updateNav(0);
+            const container = document.getElementById('game-container');
+            container.innerHTML = `
+                <div class="mb-8">
+                    <h2 class="text-xl font-black mb-2">Select Situation</h2>
+                    <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Level up for your 7-day trip</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    ${SITUATIONS.map(s => {
+                        const isUnlocked = state.unlocked.includes(s.id);
+                        return `
+                            <div onclick="${isUnlocked ? `renderWordList('${s.id}')` : ''}" 
+                                 class="situation-card ${s.color} p-5 rounded-[2rem] text-white flex flex-col justify-between h-44 shadow-lg shadow-gray-200 relative overflow-hidden ${!isUnlocked ? 'locked' : ''}">
+                                <div class="text-3xl bg-white/20 w-12 h-12 rounded-2xl flex items-center justify-center">${s.icon}</div>
+                                <div>
+                                    <h3 class="font-black text-lg leading-tight mb-1">${s.name}</h3>
+                                    <p class="text-[10px] font-bold opacity-80 uppercase">${s.words} Phrases</p>
+                                </div>
+                                ${!isUnlocked ? '<div class="absolute inset-0 flex items-center justify-center bg-black/20"><span class="text-2xl">🔒</span></div>' : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function renderWordList(catId) {
+            const cat = SITUATIONS.find(s => s.id === catId);
+            const words = WORD_DATA[catId] || [];
+            const container = document.getElementById('game-container');
+            
+            container.innerHTML = `
+                <div class="mb-6 flex items-center gap-4">
+                    <button onclick="renderSituations()" class="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-xl">←</button>
+                    <div>
+                        <h2 class="text-xl font-black">${cat.name}</h2>
+                        <p class="text-xs text-gray-500 font-bold uppercase">${words.length} Survival Phrases</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    ${words.map((w, idx) => `
+                        <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4 group">
+                            <div onclick="playWord('${w.jp}', ${idx})" class="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center cursor-pointer active:scale-90 transition-transform">
+                                ${SVGS.speaker}
+                            </div>
+                            <div class="flex-grow">
+                                <h4 class="text-lg font-black leading-tight">${w.jp}</h4>
+                                <p class="text-xs font-bold text-red-500 tracking-wider mb-1">${w.romaji}</p>
+                                <p class="text-sm text-gray-600">${w.en}</p>
+                            </div>
+                            <button onclick="markLearned(this)" class="w-8 h-8 rounded-full border-2 border-gray-100 flex items-center justify-center text-gray-200 hover:border-green-500 hover:text-green-500 transition-colors">
+                                ${SVGS.check}
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function playWord(jp, idx) {
+            speak(jp);
+            // Visual feedback
+        }
+
+        function markLearned(btn) {
+            if (btn.classList.contains('text-green-500')) return;
+            btn.classList.remove('text-gray-200', 'border-gray-100');
+            btn.classList.add('text-green-500', 'border-green-500', 'bg-green-50');
+            state.score += 50;
+            updateHUD();
+        }
+
+        function renderChallenges() {
+            updateNav(1);
+            const container = document.getElementById('game-container');
+            container.innerHTML = `
+                <div class="mb-8">
+                    <h2 class="text-xl font-black mb-2">Speak & Win</h2>
+                    <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Perfect your pronunciation</p>
+                </div>
+                
+                <div class="bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-[2.5rem] text-white text-center shadow-xl">
+                    <div class="text-5xl mb-4">🎤</div>
+                    <h3 class="text-2xl font-black mb-2">Challenge Mode</h3>
+                    <p class="text-sm opacity-80 mb-6">Listen to the phrase and repeat it back to earn 2X Bonus Points!</p>
+                    <button onclick="startChallenge()" class="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-black shadow-lg hover:scale-105 active:scale-95 transition-all">
+                        START QUEST
+                    </button>
+                </div>
+
+                <div class="mt-8 grid grid-cols-1 gap-4">
+                    <div class="bg-white p-6 rounded-3xl border border-gray-100 flex items-center gap-4">
+                        <div class="text-3xl">🏆</div>
+                        <div>
+                            <h4 class="font-black">Politeness Master</h4>
+                            <p class="text-xs text-gray-400">Locked - Finish all Polite phrases</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function startChallenge() {
+            // Simplified mock challenge
+            const phrase = WORD_DATA.polite[2]; // Sumimasen
+            const container = document.getElementById('game-container');
+            container.innerHTML = `
+                 <div class="flex flex-col items-center justify-center h-full text-center p-4">
+                    <p class="text-xs font-black text-indigo-500 uppercase mb-8">Repeat after me</p>
+                    <h2 class="text-5xl font-black mb-2">${phrase.jp}</h2>
+                    <p class="text-xl font-bold text-gray-400 mb-12">${phrase.romaji}</p>
+                    
+                    <button onclick="speak('${phrase.jp}')" class="w-20 h-20 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mb-12">
+                         ${SVGS.speaker}
+                    </button>
+
+                    <div id="mic-area" class="w-full">
+                        <button onclick="simulateMic()" id="mic-btn" class="w-full bg-indigo-600 text-white p-6 rounded-3xl font-black flex items-center justify-center gap-3">
+                            <span class="text-2xl">🎙️</span> TAP TO SPEAK
+                        </button>
+                    </div>
+                 </div>
+            `;
+        }
+
+        function simulateMic() {
+            const btn = document.getElementById('mic-btn');
+            btn.innerHTML = `<span class="animate-ping w-4 h-4 bg-white rounded-full"></span> LISTENING...`;
+            btn.classList.add('bg-red-500');
+            
+            setTimeout(() => {
+                btn.innerHTML = `✨ 98% MATCH! +100 XP`;
+                btn.classList.remove('bg-red-500');
+                btn.classList.add('bg-green-500');
+                state.score += 100;
+                updateHUD();
+                setTimeout(renderChallenges, 2000);
+            }, 2000);
+        }
+
+        function renderDictionary() {
+            updateNav(2);
+            const container = document.getElementById('game-container');
+            container.innerHTML = `
+                <div class="mb-6">
+                    <h2 class="text-xl font-black mb-1">Travel Essentials</h2>
+                    <p class="text-xs text-gray-400 font-bold uppercase tracking-wider underline">One Word to Remember: Sumimasen</p>
+                </div>
+
+                <div class="space-y-8">
+                    <section>
+                        <h3 class="text-xs font-black text-red-500 uppercase tracking-widest mb-4">Numbers & Logistics</h3>
+                        <div class="bg-black text-white p-6 rounded-3xl space-y-3">
+                            <div class="flex justify-between border-b border-white/10 pb-2">
+                                <span>Police</span><span class="font-black">110</span>
+                            </div>
+                            <div class="flex justify-between border-b border-white/10 pb-2">
+                                <span>Ambulance</span><span class="font-black">119</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Currency</span><span class="font-black">JPY (¥)</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                         <h3 class="text-xs font-black text-red-500 uppercase tracking-widest mb-4">Pro Guide Cheat Sheet</h3>
+                         <div class="grid grid-cols-1 gap-3">
+                            <div class="p-4 bg-white rounded-2xl border-l-4 border-red-500 shadow-sm">
+                                <p class="text-xs font-bold text-gray-400">GREETING</p>
+                                <p class="font-black">Konnichiwa (こんにちは)</p>
+                            </div>
+                            <div class="p-4 bg-white rounded-2xl border-l-4 border-blue-500 shadow-sm">
+                                <p class="text-xs font-bold text-gray-400">DIRECTIONS</p>
+                                <p class="font-black">__ wa doko desu ka? (__はどこですか？)</p>
+                            </div>
+                             <div class="p-4 bg-white rounded-2xl border-l-4 border-orange-500 shadow-sm">
+                                <p class="text-xs font-bold text-gray-400">DINING</p>
+                                <p class="font-black">Okaikei onegai shimasu (お会計お願いします)</p>
+                            </div>
+                         </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function updateHUD() {
+            document.getElementById('score-val').innerText = state.score.toString().padStart(4, '0');
+            document.getElementById('streak-count').innerText = `${state.streak} DAY${state.streak > 1 ? 'S' : ''}`;
+        }
+
+        function updateNav(idx) {
+            const btns = document.querySelectorAll('nav button');
+            btns.forEach((b, i) => {
+                if(i === idx) b.classList.add('text-red-500');
+                else {
+                    b.classList.remove('text-red-500');
+                    b.classList.add('text-gray-400');
+                }
+            });
+        }
+
+        function toggleFilters() {
+            // Simple filter toggle for vegetarian/pork-free
+            if(state.currentFilter === 'all') {
+                state.currentFilter = 'veg';
+                alert("Filter Active: Showing Vegetarian (Niku-nashi) phrases first.");
+            } else {
+                state.currentFilter = 'all';
+                alert("Filter Disabled: All phrases visible.");
+            }
+        }
+
+        // Init
+        window.onload = () => {
+            renderSituations();
+            updateHUD();
+        };
+
+    </script>
+</body>
+</html>
